@@ -1,7 +1,4 @@
-export interface ISignupDto {
-  username: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-}
+import z from "zod";
+import { signup } from "./authentication.validation";
+
+export type SignupDto = z.infer<ReturnType<typeof signup>>;

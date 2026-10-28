@@ -1,10 +1,23 @@
-import { ISignupDto } from "./authentication.dto";
+import { SignupDto } from "./authentication.dto";
 
 export class AuthenticationService {
   constructor() {}
 
-  signup = async (data: ISignupDto): Promise<number> => {
-    console.log({ data });
+  signup = async ({
+    username,
+    email,
+    phone,
+    password,
+    confirmPassword,
+  }: SignupDto["body"]): Promise<number> => {
+    console.log({
+      username,
+      email,
+      phone,
+      password,
+      confirmPassword,
+    });
+
     return 201;
   };
 }

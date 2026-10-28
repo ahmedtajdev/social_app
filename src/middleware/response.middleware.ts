@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import { IResponse } from "../common/interface";
 
-export const responseFormatter = (handler: Function) => {
+export const responseFormatter = (handler: Function): RequestHandler => {
   return async (
     req: Request,
     res: Response,
