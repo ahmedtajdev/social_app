@@ -30,7 +30,7 @@ export class ConflictException extends ApplicationException {
   }
 }
 
-export class TooManyRequestException extends ApplicationException {
+export class TooManyRequestsException extends ApplicationException {
   constructor(message: string = "TooManyRequest", cause?: unknown) {
     super(message, 429, cause);
   }

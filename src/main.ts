@@ -6,10 +6,22 @@ import {
   userController,
 } from "./modules";
 import { globalErrorHandling } from "./middleware";
+import { LIMIT, PORT } from "./config";
+import { bootstrapDB } from "./DB/connection.db";
+import { generateLimiter } from "./common/utils";
+import helmet from "helmet";
+import cors from "cors";
 
 const app: express.Application = express();
 
-app.use(express.json());
+bootstrapDB(app, PORT);
+
+const limiter = generateLimiter({
+  limit: LIMIT,
+});
+
+app.set("trust proxy", true);
+app.use(helmet(), cors(), limiter, express.json());
 
 app.all(
   "/",
@@ -27,8 +39,12 @@ app.use("/comment", commentController);
 app.use("/post", postController);
 app.use("/user", userController);
 
+app.all("{/*dummy}", (req, res) =>
+  res.status(404).json({ message: "Invalid application routing" }),
+);
+
 app.use(globalErrorHandling);
 
-app.listen(3000, () => {
-  console.log(`Server is running on port 3000`);
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });

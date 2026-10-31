@@ -1,6 +1,11 @@
 import { z } from "zod";
 import mongoose from "mongoose";
-import { GenderEnum, LanguageEnum } from "../enum";
+import {
+  EmailSubjectEnum,
+  EmailTitleEnum,
+  GenderEnum,
+  LanguageEnum,
+} from "../enum";
 
 const validationMessages = {
   email: {
@@ -39,6 +44,17 @@ const validationMessages = {
     [LanguageEnum.EN]: "Invalid ID format",
     [LanguageEnum.AR]: "تنسيق ID غير صحيح",
   },
+  subject: {
+    [LanguageEnum.EN]:
+      "Invalid subject, must be one of the predefined subjects",
+    [LanguageEnum.AR]:
+      "موضوع غير صالح، يجب أن يكون أحد المواضيع المحددة مسبقًا",
+  },
+  title: {
+    [LanguageEnum.EN]: "Invalid title, must be one of the predefined titles",
+    [LanguageEnum.AR]:
+      "عنوان غير صالح، يجب أن يكون أحد العناوين المحددة مسبقًا",
+  },
 };
 
 const getValidationMessage = (
@@ -48,16 +64,16 @@ const getValidationMessage = (
   return validationMessages[field]?.[lang] || "Invalid input";
 };
 
-const matchFields = ({
+const matchFields = <T extends object>({
   original,
   copy,
   data,
   ctx,
   lang = LanguageEnum.EN,
 }: {
-  original: string;
-  copy: string;
-  data: any;
+  original: Extract<keyof T, string>;
+  copy: Extract<keyof T, string>;
+  data: T;
   ctx: z.RefinementCtx;
   lang?: LanguageEnum;
 }) => {
@@ -73,16 +89,16 @@ const matchFields = ({
   }
 };
 
-const NotMatchFields = ({
+const NotMatchFields = <T extends object>({
   original,
   copy,
   data,
   ctx,
   lang = LanguageEnum.EN,
 }: {
-  original: string;
-  copy: string;
-  data: any;
+  original: Extract<keyof T, string>;
+  copy: Extract<keyof T, string>;
+  data: T;
   ctx: z.RefinementCtx;
   lang?: LanguageEnum;
 }) => {
@@ -102,6 +118,16 @@ export const generalValidationFields = {
   email: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.email({
       message: getValidationMessage("email", lang),
+    });
+  },
+  subject: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.enum(EmailSubjectEnum, {
+      message: getValidationMessage("subject", lang),
+    });
+  },
+  title: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.enum(EmailTitleEnum, {
+      message: getValidationMessage("title", lang),
     });
   },
   otp: (lang: LanguageEnum = LanguageEnum.EN) => {
@@ -133,17 +159,16 @@ export const generalValidationFields = {
     return z.enum(GenderEnum);
   },
   phone: (lang: LanguageEnum = LanguageEnum.EN) => {
-    return z
-      .string()
-      .regex(/^01(0|1|2|5)\d{8}$/, {
-        message: getValidationMessage("phone", lang),
-      })
-      .optional();
+    return z.string().regex(/^01(0|1|2|5)\d{8}$/, {
+      message: getValidationMessage("phone", lang),
+    });
   },
   id: (lang: LanguageEnum = LanguageEnum.EN) => {
-    return z.string().refine((data) => mongoose.Types.ObjectId.isValid(data), {
-      message: getValidationMessage("id", lang),
-    });
+    return z
+      .string()
+      .refine((idValue) => mongoose.Types.ObjectId.isValid(idValue), {
+        message: getValidationMessage("id", lang),
+      });
   },
   file: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.strictObject({

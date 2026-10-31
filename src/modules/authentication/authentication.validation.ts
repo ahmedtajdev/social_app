@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { LanguageEnum } from "../../common/enum";
 import { generalValidationFields } from "../../common/utils";
+import {
+  ResetForgotPasswordDto,
+  SignupDto,
+  UpdatePasswordDto,
+} from "./authentication.dto";
 
 const loginSchema = (lang: LanguageEnum = LanguageEnum.EN) =>
   z.strictObject({
@@ -18,11 +23,11 @@ export const signup = (lang: LanguageEnum = LanguageEnum.EN) =>
     body: loginSchema(lang)
       .safeExtend({
         username: generalValidationFields.username(lang),
-        phone: generalValidationFields.phone(lang),
+        phone: generalValidationFields.phone(lang).optional(),
         confirmPassword: generalValidationFields.password(lang),
       })
       .superRefine((data, ctx) => {
-        generalValidationFields.matchFields({
+        generalValidationFields.matchFields<SignupDto["body"]>({
           original: "password",
           copy: "confirmPassword",
           data,
@@ -47,6 +52,8 @@ export const resendEmailOtp = (lang: LanguageEnum = LanguageEnum.EN) =>
   z.object({
     body: z.strictObject({
       email: generalValidationFields.email(lang),
+      subject: generalValidationFields.subject(lang),
+      title: generalValidationFields.title(lang),
     }),
   });
 
@@ -82,7 +89,7 @@ export const resetForgotPassword = (lang: LanguageEnum = LanguageEnum.EN) =>
         confirmPassword: generalValidationFields.password(lang),
       })
       .superRefine((data, ctx) => {
-        generalValidationFields.matchFields({
+        generalValidationFields.matchFields<ResetForgotPasswordDto["body"]>({
           original: "password",
           copy: "confirmPassword",
           data,
@@ -101,14 +108,14 @@ export const updatePassword = (lang: LanguageEnum = LanguageEnum.EN) =>
         confirmNewPassword: generalValidationFields.password(lang),
       })
       .superRefine((data, ctx) => {
-        generalValidationFields.NotMatchFields({
+        generalValidationFields.NotMatchFields<UpdatePasswordDto["body"]>({
           original: "currentPassword",
           copy: "newPassword",
           data,
           ctx,
           lang,
         });
-        generalValidationFields.matchFields({
+        generalValidationFields.matchFields<UpdatePasswordDto["body"]>({
           original: "newPassword",
           copy: "confirmNewPassword",
           data,

@@ -1,11 +1,11 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import { LanguageEnum } from "../common/enum";
 import { BadRequestException } from "../common/exception";
 import { ZodType } from "zod";
 
 type ValidationSchemaType = (lang?: LanguageEnum) => ZodType;
 
-export const validation = (schema: ValidationSchemaType) => {
+export const validation = (schema: ValidationSchemaType): RequestHandler => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const lang = Number(req.headers["accept-language"] ?? LanguageEnum.EN);
     const validationResult = schema(lang).safeParse({
