@@ -24,7 +24,6 @@ import {
   EmailTitleEnum,
   ProviderEnum,
 } from "../../common/enum";
-import { del, expire, get, incBy, keys, set, ttl } from "../../common/services";
 import {
   compare,
   createLoginCredentials,
@@ -38,13 +37,16 @@ import {
   userEmailTrialsKey,
 } from "../../common/utils";
 import { createOtp } from "../../common/utils";
+import { cacheService, CacheService } from "../../common/services";
 
 export class AuthenticationService {
   private userRepository: UserRepository;
+  private cacheService: CacheService;
   private client: OAuth2Client;
 
   constructor() {
     this.userRepository = userRepository;
+    this.cacheService = cacheService;
     this.client = new OAuth2Client();
   }
 
@@ -117,14 +119,16 @@ export class AuthenticationService {
     blockInSeconds = 300,
   }: {
     email: string;
-    subject: string;
+    subject: EmailSubjectEnum;
     title: string;
     expiresIn?: number;
     maxTrials?: number;
     blockInSeconds?: number;
   }) {
     try {
-      const existOtp_TTL = await ttl({ key: userEmailKey({ email, subject }) });
+      const existOtp_TTL = await this.cacheService.ttl({
+        key: userEmailKey({ email, subject }),
+      });
 
       if (existOtp_TTL > 0) {
         throw new ConflictException(
@@ -133,28 +137,30 @@ export class AuthenticationService {
       }
 
       const oldTrials =
-        (await get({ key: userEmailTrialsKey({ email, subject }) })) ?? 0;
+        (await this.cacheService.get({
+          key: userEmailTrialsKey({ email, subject }),
+        })) ?? 0;
 
       if (oldTrials >= maxTrials) {
         throw new TooManyRequestsException(
-          `Max OTP trials have been reached, please try again after ${await ttl({ key: userEmailTrialsKey({ email, subject }) })}s`,
+          `Max OTP trials have been reached, please try again after ${await this.cacheService.ttl({ key: userEmailTrialsKey({ email, subject }) })}s`,
         );
       }
 
       const code = createOtp();
 
-      await set({
+      await this.cacheService.set({
         key: userEmailKey({ email, subject }),
         value: await hash(code.toString()),
         ttl: expiresIn,
       });
 
-      const currentTrials = await incBy({
+      const currentTrials = await this.cacheService.incBy({
         key: userEmailTrialsKey({ email, subject }),
       });
 
       if (currentTrials === maxTrials) {
-        await expire({
+        await this.cacheService.expire({
           key: userEmailTrialsKey({ email, subject }),
           ttl: blockInSeconds,
         });
@@ -275,7 +281,7 @@ export class AuthenticationService {
         throw new NotfoundException("Invalid account");
       }
 
-      const hashOtp = await get({
+      const hashOtp = await this.cacheService.get({
         key: userEmailKey({ email, subject: EmailSubjectEnum.CONFIRM_EMAIL }),
       });
 
@@ -285,8 +291,8 @@ export class AuthenticationService {
 
       user.confirmEmail = new Date().toDateString();
       await user.save();
-      await del({
-        keys: await keys({
+      await this.cacheService.del({
+        keys: await this.cacheService.keys({
           prefix: userEmailKey({
             email,
             subject: EmailSubjectEnum.CONFIRM_EMAIL,
@@ -319,7 +325,7 @@ export class AuthenticationService {
         throw new NotfoundException("Invalid account");
       }
 
-      const hashOtp = await get({
+      const hashOtp = await this.cacheService.get({
         key: userEmailKey({ email, subject: EmailSubjectEnum.FORGOT_PASSWORD }),
       });
 
@@ -344,10 +350,10 @@ export class AuthenticationService {
     await user.save();
 
     const result = await Promise.all([
-      keys({
+      this.cacheService.keys({
         prefix: userBaseRevokeTokenKey({ userId: user._id.toString() }),
       }),
-      keys({
+      this.cacheService.keys({
         prefix: userEmailKey({
           email,
           subject: EmailSubjectEnum.FORGOT_PASSWORD,
@@ -355,7 +361,7 @@ export class AuthenticationService {
       }),
     ]);
 
-    await del({ keys: [...result[0], ...result[1]] });
+    await this.cacheService.del({ keys: [...result[0], ...result[1]] });
 
     return "Password reset successfully";
   };
@@ -415,7 +421,7 @@ export class AuthenticationService {
         throw new NotfoundException("Invalid account");
       }
 
-      const hashOtp = await get({
+      const hashOtp = await this.cacheService.get({
         key: userEmailKey({
           email,
           subject: EmailSubjectEnum.LOGIN_CONFIRMATION,
@@ -426,8 +432,8 @@ export class AuthenticationService {
         throw new ConflictException("Invalid OTP");
       }
 
-      await del({
-        keys: await keys({
+      await this.cacheService.del({
+        keys: await this.cacheService.keys({
           prefix: userEmailKey({
             email,
             subject: EmailSubjectEnum.LOGIN_CONFIRMATION,

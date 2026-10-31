@@ -1,87 +1,89 @@
-import { RedisArgument } from "redis";
-import { client } from "../../DB/redis.connection.js";
+import { createClient, RedisArgument, RedisClientType } from "redis";
+import { REDIS_URI } from "../../config.js";
 
-export const set = async ({
-  key,
-  value,
-  ttl,
-}: {
-  key: RedisArgument;
-  value: number | RedisArgument;
-  ttl?: number;
-}) => {
-  if (typeof value == "object") {
-    value = JSON.stringify(value);
+export class CacheService {
+  private readonly client: RedisClientType;
+
+  constructor() {
+    this.client = createClient({ url: REDIS_URI });
+    this.connect();
   }
-  return await client.set(key, value, { EX: ttl as number });
-};
 
-export const get = async ({ key }: { key: RedisArgument }) => {
-  let value = await client.get(key);
-  try {
-    return JSON.parse(value as string);
-  } catch (error) {
-    return value;
+  async connect() {
+    try {
+      await this.client.connect();
+      console.log(`Redis connected`);
+    } catch (error) {
+      console.log(`Fail to connect with Redis`);
+    }
   }
-};
 
-export const exists = async ({ key }: { key: RedisArgument }) => {
-  return await client.exists(key);
-};
-
-export const update = async ({
-  key,
-  value,
-  ttl,
-}: {
-  key: RedisArgument;
-  value: number | RedisArgument;
-  ttl?: number;
-}) => {
-  if (!(await exists({ key }))) {
-    return 0;
+  async set({
+    key,
+    value,
+    ttl,
+  }: {
+    key: RedisArgument;
+    value: number | RedisArgument;
+    ttl?: number;
+  }) {
+    if (typeof value == "object") {
+      value = JSON.stringify(value);
+    }
+    return await this.client.set(key, value, ttl ? { EX: ttl } : {});
   }
-  return await set({ key, value, ttl: ttl as number });
-};
 
-export const del = async ({ keys }: { keys: RedisArgument | string[] }) => {
-  return await client.del(keys);
-};
+  async get({ key }: { key: RedisArgument }) {
+    let value = await this.client.get(key);
+    try {
+      return JSON.parse(value as string);
+    } catch (error) {
+      return value;
+    }
+  }
 
-export const keys = async ({ prefix }: { prefix: RedisArgument }) => {
-  return await client.keys(`${prefix}*`);
-};
+  async exists({ key }: { key: RedisArgument }) {
+    return await this.client.exists(key);
+  }
 
-export const ttl = async ({ key }: { key: RedisArgument }) => {
-  return await client.ttl(key);
-};
+  async update({
+    key,
+    value,
+    ttl,
+  }: {
+    key: RedisArgument;
+    value: number | RedisArgument;
+    ttl?: number;
+  }) {
+    if (!(await this.exists({ key }))) {
+      return 0;
+    }
+    return await this.set({ key, value, ttl: ttl as number });
+  }
 
-export const expire = async ({
-  key,
-  ttl,
-}: {
-  key: RedisArgument;
-  ttl?: number;
-}) => {
-  return await client.expire(key, ttl as number);
-};
+  async del({ keys }: { keys: RedisArgument | string[] }) {
+    return await this.client.del(keys);
+  }
 
-export const incBy = async ({
-  key,
-  value = 1,
-}: {
-  key: RedisArgument;
-  value?: number;
-}) => {
-  return await client.incrBy(key, value);
-};
+  async keys({ prefix }: { prefix: RedisArgument }) {
+    return await this.client.keys(`${prefix}*`);
+  }
 
-export const decrBy = async ({
-  key,
-  value = 1,
-}: {
-  key: RedisArgument;
-  value?: number;
-}) => {
-  return await client.decrBy(key, value);
-};
+  async ttl({ key }: { key: RedisArgument }) {
+    return await this.client.ttl(key);
+  }
+
+  async expire({ key, ttl }: { key: RedisArgument; ttl?: number }) {
+    return await this.client.expire(key, ttl as number);
+  }
+
+  async incBy({ key, value = 1 }: { key: RedisArgument; value?: number }) {
+    return await this.client.incrBy(key, value);
+  }
+
+  async decrBy({ key, value = 1 }: { key: RedisArgument; value?: number }) {
+    return await this.client.decrBy(key, value);
+  }
+}
+
+export default new CacheService();

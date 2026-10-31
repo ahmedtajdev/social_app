@@ -17,8 +17,8 @@ import {
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { IUser } from "../interface";
 import { randomUUID } from "node:crypto";
-import { exists, set } from "../services";
 import { userRepository } from "../repository";
+import cacheService from "../services/cache.service";
 
 export const userBaseKey = ({ userId }: { userId: string }): string => {
   return `User::${userId}`;
@@ -130,7 +130,7 @@ export const decodeToken = async ({
   }
 
   if (
-    await exists({
+    await cacheService.exists({
       key: userRevokeTokenKey({
         userId: payload.sub,
         jti: payload.jti as string,
@@ -141,7 +141,7 @@ export const decodeToken = async ({
   }
 
   const user = await userRepository.findById({
-    id: payload.sub,
+    id: new mongoose.Types.ObjectId(payload.sub),
   });
 
   if (!user) {
@@ -209,7 +209,7 @@ export const createRevokeToken = async ({
   const ttl = refreshExpiresIn - consumedTime;
 
   // SET IN REDIS
-  await set({
+  await cacheService.set({
     key: userRevokeTokenKey({
       userId: payload.sub as string,
       jti: payload.jti as string,

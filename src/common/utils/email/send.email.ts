@@ -2,14 +2,15 @@ import nodemailer from "nodemailer";
 import { APP_EMAIL, APP_PASSWORD, APPLICATION_NAME } from "../../../config.js";
 import { BadRequestException } from "../../exception";
 import { MailComposerAttachment } from "nodemailer/lib/mail-composer";
+import { EmailSubjectEnum } from "../../enum/email.enum.js";
 
 export const userEmailKey = ({
   email,
   subject,
 }: {
   email: string;
-  subject: string;
-}) => {
+  subject: EmailSubjectEnum;
+}): string => {
   return `User::${email.trim().toLowerCase()}::${subject}_OTP`;
 };
 
@@ -18,8 +19,8 @@ export const userEmailTrialsKey = ({
   subject,
 }: {
   email: string;
-  subject: string;
-}) => {
+  subject: EmailSubjectEnum;
+}): string => {
   return `${userEmailKey({ email, subject })}::Trials`;
 };
 
@@ -40,13 +41,13 @@ export const sendEmail = async ({
   html,
   attachments = [],
 }: {
-  to: string;
-  cc: string;
-  bcc: string;
-  subject: string;
-  text: string;
+  to?: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: EmailSubjectEnum;
+  text?: string;
   html: string;
-  attachments: MailComposerAttachment[];
+  attachments?: MailComposerAttachment[];
 }) => {
   try {
     if (!to?.length && !cc?.length && bcc?.length) {
