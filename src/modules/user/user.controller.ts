@@ -8,6 +8,7 @@ import { TokenTypeEnum } from "../../common/enum";
 import * as validators from "./../authentication/authentication.validation";
 import userService from "./user.service";
 import { ILoginCredentials, IResponse, IUser } from "../../common/interface";
+import mongoose from "mongoose";
 
 const router = Router({ strict: true, caseSensitive: true });
 
@@ -146,6 +147,98 @@ router.post(
       });
       return {
         message,
+      };
+    },
+  ),
+);
+
+router.post(
+  "/:targetUserId/follow",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(validators.targetUserId),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const message = await userService.follow({
+        user: req.user,
+        targetUserId: new mongoose.Types.ObjectId(
+          req.validated.params.targetUserId,
+        ),
+      });
+      return {
+        message,
+      };
+    },
+  ),
+);
+
+router.delete(
+  "/:targetUserId/follow",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(validators.targetUserId),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const message = await userService.unfollow({
+        user: req.user,
+        targetUserId: new mongoose.Types.ObjectId(
+          req.validated.params.targetUserId,
+        ),
+      });
+      return {
+        message,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/:targetUserId/followers",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(validators.targetUserId),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const data = await userService.getUserFollowers({
+        user: req.user,
+        targetUserId: new mongoose.Types.ObjectId(
+          req.validated.params.targetUserId,
+        ),
+      });
+      return {
+        data: data,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/:targetUserId/following",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(validators.targetUserId),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const data = await userService.getUserFollowing({
+        user: req.user,
+        targetUserId: new mongoose.Types.ObjectId(
+          req.validated.params.targetUserId,
+        ),
+      });
+      return {
+        data,
       };
     },
   ),

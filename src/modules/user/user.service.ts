@@ -7,6 +7,7 @@ import {
 import {
   BadRequestException,
   ConflictException,
+  NotfoundException,
   UnauthorizedException,
 } from "../../common/exception";
 import { IUser } from "../../common/interface";
@@ -20,21 +21,30 @@ import {
   userBaseRevokeTokenKey,
 } from "../../common/security";
 import authenticationService from "../authentication/authentication.service";
-import { HydratedDocument } from "mongoose";
-import { del, get, keys } from "../../common/services";
+import mongoose, { HydratedDocument } from "mongoose";
 import { userEmailKey } from "../../common/utils";
 import { ACCESS_TOKEN_EXPIRES_IN } from "../../config";
-import { userRepository, UserRepository } from "../../common/repository";
+import {
+  followRepository,
+  FollowRepository,
+  userRepository,
+  UserRepository,
+} from "../../common/repository";
 import {
   UpdatePasswordDto,
   updateProfileDto,
   verifyEnableTwoStepVerificationCodeDto,
 } from "../authentication/authentication.dto";
+import { CacheService, cacheService } from "../../common/services";
 
 export class UserService {
   private userRepository: UserRepository;
+  private followRepository: FollowRepository;
+  private cacheService: CacheService;
   constructor() {
     this.userRepository = userRepository;
+    this.followRepository = followRepository;
+    this.cacheService = cacheService;
   }
 
   async getProfile(user: HydratedDocument<IUser>) {
@@ -110,7 +120,7 @@ export class UserService {
   ) {
     try {
       const { otp } = body;
-      const hashOtp = await get({
+      const hashOtp = await this.cacheService.get({
         key: userEmailKey({
           email: user.email,
           subject: EmailSubjectEnum.ENABLE_TWO_STEP_VERIFICATION,
@@ -124,8 +134,8 @@ export class UserService {
       user.isTwoStepVerificationEnabled = true;
       await user.save();
 
-      await del({
-        keys: await keys({
+      await this.cacheService.del({
+        keys: await this.cacheService.keys({
           prefix: userEmailKey({
             email: user.email,
             subject: EmailSubjectEnum.ENABLE_TWO_STEP_VERIFICATION,
@@ -179,8 +189,8 @@ export class UserService {
       case LogoutEnum.ALL:
         user.changeCredentialsTime = new Date().toDateString();
         await user.save();
-        await del({
-          keys: await keys({
+        await this.cacheService.del({
+          keys: await this.cacheService.keys({
             prefix: userBaseRevokeTokenKey({ userId: payload.sub as string }),
           }),
         });
@@ -192,6 +202,152 @@ export class UserService {
       default:
         throw new BadRequestException("Invalid action");
     }
+  }
+
+  async follow({
+    user,
+    targetUserId,
+  }: {
+    user: HydratedDocument<IUser>;
+    targetUserId: mongoose.Types.ObjectId;
+  }) {
+    const targetUser = await this.userRepository.findOne({
+      filter: { _id: targetUserId, confirmEmail: { $exists: true } },
+    });
+
+    if (!targetUser) {
+      throw new NotfoundException("User not found");
+    }
+
+    if (user._id.equals(targetUser._id)) {
+      throw new BadRequestException("You cannot follow yourself");
+    }
+    try {
+      await this.followRepository.createOne({
+        data: {
+          followerId: user._id,
+          followingId: targetUser._id,
+        },
+      });
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new BadRequestException("You are already following this user");
+      }
+      throw error;
+    }
+
+    return `You are now following ${targetUser.firstName} ${targetUser.lastName}`;
+  }
+
+  async unfollow({
+    user,
+    targetUserId,
+  }: {
+    user: HydratedDocument<IUser>;
+    targetUserId: mongoose.Types.ObjectId;
+  }) {
+    const targetUser = await this.userRepository.findOne({
+      filter: { _id: targetUserId, confirmEmail: { $exists: true } },
+    });
+
+    if (!targetUser) {
+      throw new NotfoundException("User not found");
+    }
+
+    if (user._id.equals(targetUser._id)) {
+      throw new BadRequestException("You cannot unfollow yourself");
+    }
+
+    const result = await this.followRepository.deleteOne({
+      filter: {
+        followerId: user._id,
+        followingId: targetUser._id,
+      },
+    });
+
+    if (result.deletedCount === 0) {
+      throw new BadRequestException("You are not following this user");
+    }
+
+    return `You unfollowed ${targetUser.firstName} ${targetUser.lastName}`;
+  }
+
+  async getUserFollowers({
+    user,
+    targetUserId,
+  }: {
+    user: HydratedDocument<IUser>;
+    targetUserId: mongoose.Types.ObjectId;
+  }) {
+    const targetUser = await this.userRepository.findOne({
+      filter: { _id: targetUserId, confirmEmail: { $exists: true } },
+    });
+
+    if (!targetUser) {
+      throw new NotfoundException("User not found");
+    }
+
+    const {
+      docs: followers,
+      docsCount,
+      totalPages,
+      currentPage,
+      limit,
+    } = await this.followRepository.paginate({
+      filter: {
+        followingId: targetUser._id,
+      },
+      options: {
+        populate: "followerId",
+      },
+    });
+
+    return {
+      docsCount,
+      totalPages,
+      currentPage,
+      limit,
+      followers: followers.map((follower) => follower.followerId),
+    };
+  }
+
+  async getUserFollowing({
+    user,
+    targetUserId,
+  }: {
+    user: HydratedDocument<IUser>;
+    targetUserId: mongoose.Types.ObjectId;
+  }) {
+    const targetUser = await this.userRepository.findOne({
+      filter: { _id: targetUserId, confirmEmail: { $exists: true } },
+    });
+
+    if (!targetUser) {
+      throw new NotfoundException("User not found");
+    }
+
+    const {
+      docs: following,
+      currentPage,
+      totalPages,
+      limit,
+      docsCount,
+    } = await this.followRepository.paginate({
+      filter: {
+        followerId: targetUser._id,
+      },
+      options: {
+        populate: "followingId",
+      },
+    });
+
+    return {
+      docsCount,
+      totalPages,
+      currentPage,
+      limit,
+      following: following.map((follow) => follow.followingId),
+    };
   }
 }
 

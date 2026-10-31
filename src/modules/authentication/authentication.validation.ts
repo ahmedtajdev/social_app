@@ -79,6 +79,13 @@ export const otp = (lang: LanguageEnum = LanguageEnum.EN) =>
     }),
   });
 
+export const targetUserId = (lang: LanguageEnum = LanguageEnum.EN) =>
+  z.object({
+    params: z.strictObject({
+      targetUserId: generalValidationFields.id(lang),
+    }),
+  });
+
 export const resetForgotPassword = (lang: LanguageEnum = LanguageEnum.EN) =>
   z.object({
     body: z

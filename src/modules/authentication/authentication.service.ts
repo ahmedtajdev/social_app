@@ -42,7 +42,7 @@ import { cacheService, CacheService } from "../../common/services";
 export class AuthenticationService {
   private userRepository: UserRepository;
   private cacheService: CacheService;
-  private client: OAuth2Client;
+  private readonly client: OAuth2Client;
 
   constructor() {
     this.userRepository = userRepository;

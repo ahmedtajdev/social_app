@@ -1,7 +1,7 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
-import { decrBy, exists, expire, incBy } from "../services";
 import geoip from "geoip-lite";
 import { NextFunction, Request, Response } from "express";
+import { cacheService } from "../services";
 
 const fromWhere = (ip: string) => {
   if (!ip) return null;
@@ -48,10 +48,10 @@ export const generateLimiter = ({
     store: {
       async incr(key, callback) {
         try {
-          const count = await incBy({ key });
+          const count = await cacheService.incBy({ key });
 
           if (count === 1) {
-            await expire({ key, ttl });
+            await cacheService.expire({ key, ttl });
           }
 
           callback(undefined, count, undefined);
@@ -60,8 +60,8 @@ export const generateLimiter = ({
         }
       },
       async decrement(key) {
-        if (await exists({ key })) {
-          await decrBy({ key });
+        if (await cacheService.exists({ key })) {
+          await cacheService.decrBy({ key });
         }
       },
       resetKey: (key: string) => void {},
