@@ -1,5 +1,10 @@
 import mongoose, { HydratedDocument } from "mongoose";
-import { GenderEnum, ProviderEnum, RoleEnum } from "../../common/enum";
+import {
+  AccountPrivacyEnum,
+  GenderEnum,
+  ProviderEnum,
+  RoleEnum,
+} from "../../common/enum";
 import { IUser } from "../../common/interface";
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -27,10 +32,10 @@ const userSchema = new mongoose.Schema<IUser>(
         return this.provider === ProviderEnum.SYSTEM;
       },
     },
-    phone: String,
+    phone: { type: String, default: null },
     DOB: String,
     confirmEmail: Date,
-    image: String,
+    image: { type: String, default: null },
     coverImage: [String],
     changeCredentialsTime: Date,
     isTwoStepVerificationEnabled: Boolean,
@@ -48,6 +53,11 @@ const userSchema = new mongoose.Schema<IUser>(
       type: Number,
       enum: ProviderEnum,
       default: ProviderEnum.SYSTEM,
+    },
+    accountPrivacy: {
+      type: Number,
+      enum: AccountPrivacyEnum,
+      default: AccountPrivacyEnum.PUBLIC,
     },
   },
   {

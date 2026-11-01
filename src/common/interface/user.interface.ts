@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
-import { GenderEnum, ProviderEnum, RoleEnum } from "../enum";
+import {
+  AccountPrivacyEnum,
+  GenderEnum,
+  ProviderEnum,
+  RoleEnum,
+} from "../enum";
 
 export interface IUser {
   _id: mongoose.Types.ObjectId;
@@ -11,10 +16,11 @@ export interface IUser {
   gender: GenderEnum;
   role?: RoleEnum;
   provider?: ProviderEnum;
+  accountPrivacy?: AccountPrivacyEnum;
   phone?: string;
   DOB?: string;
   confirmEmail?: string;
-  image?: string;
+  image?: string | null;
   coverImage?: string[];
   changeCredentialsTime?: string;
   createdAt?: string;

@@ -38,6 +38,7 @@ import {
 } from "../../common/utils";
 import { createOtp } from "../../common/utils";
 import { cacheService, CacheService } from "../../common/services";
+import { ISignup } from "./authentication.interface";
 
 export class AuthenticationService {
   private userRepository: UserRepository;
@@ -183,7 +184,7 @@ export class AuthenticationService {
     email,
     password,
     phone,
-  }: SignupDto["body"]): Promise<string> {
+  }: SignupDto["body"]): Promise<ISignup> {
     try {
       const duplicatedUser = await this.userRepository.findOne({
         filter: { email },
@@ -205,11 +206,20 @@ export class AuthenticationService {
         },
       });
 
-      return await this.sendEmailOtp({
+      const message = await this.sendEmailOtp({
         email,
         subject: EmailSubjectEnum.CONFIRM_EMAIL,
         title: EmailTitleEnum.CONFIRM_EMAIL,
       });
+
+      return {
+        message,
+        user: {
+          _id: user._id,
+          username: user.username as string,
+          image: user.image ? user.image : null,
+        },
+      };
     } catch (error) {
       throw error;
     }

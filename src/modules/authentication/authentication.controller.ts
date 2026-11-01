@@ -36,10 +36,13 @@ router.post(
       res: Response,
       next: NextFunction,
     ): Promise<IResponse> => {
-      const message = await authenticationService.signup(req.validated.body);
+      const { message, user } = await authenticationService.signup(
+        req.validated.body,
+      );
       return {
-        status: 201,
         message,
+        status: 201,
+        data: user,
       };
     },
   ),

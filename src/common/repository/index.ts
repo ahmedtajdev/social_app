@@ -3,3 +3,7 @@ export {
   default as followRepository,
   FollowRepository,
 } from "./follow.repository";
+export {
+  default as followRequestRepository,
+  FollowRequestRepository,
+} from "./follow_request.repository";

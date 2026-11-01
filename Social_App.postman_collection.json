@@ -1,0 +1,1011 @@
+{
+  "info": {
+    "_postman_id": "0f492495-e938-4f67-abc5-245cfda54150",
+    "name": "Social_App",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51803426",
+    "_collection_link": "https://go.postman.co/collection/51803426-0f492495-e938-4f67-abc5-245cfda54150?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "Password Reset Flow",
+          "item": [
+            {
+              "name": "forgot-password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n   \"email\": \"midotajj@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/forgot-password",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "forgot-password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "verify-forgot-password-code",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"midotajj@gmail.com\",\r\n    \"otp\": \"823992\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/verify-forgot-password-code",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "verify-forgot-password-code"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "reset-forgot-password",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"midotajj@gmail.com\",\r\n   \"password\": \"Aiefnfgfgf55525\",\r\n   \"confirmPassword\": \"Aiefnfgfgf55525\",\r\n   \"otp\": \"823992\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/reset-forgot-password",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "reset-forgot-password"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "item": [
+            {
+              "name": "login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "let response = pm.response.json();\nif(response.data) {\n    if(response.data.access_token) {\n        pm.environment.set(\"BEARER_ACCESS_TOKEN\", response.data.access_token);\n    }\n    if(response.data.refresh_token) {\n        pm.environment.set(\"BEARER_REFRESH_TOKEN\", response.data.refresh_token);\n    }\n}\n\npm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\n\npm.test(\"Response has message Done\", function () {\n    pm.expect(response.message).to.eql(\"Done\");\n});\n"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept-Language",
+                    "value": "1"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"ahmedtaj.dev@gmail.com\",\r\n    // \"email\": \"midotajj@gmail.com\",\r\n   \"password\": \"Aiefnfgfgf55525\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/login",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "login-confirmation",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "let response = pm.response.json();\r\npm.environment.set(\"BEARER_ACCESS_TOKEN\", response.data.access_token);\r\npm.environment.set(\"BEARER_REFRESH_TOKEN\", response.data.refresh_token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"email\": \"midotajj@gmail.com\",\r\n  \"otp\": \"519889\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/login-confirmation",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login-confirmation"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Signup",
+          "item": [
+            {
+              "name": "signup",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"username\": \"ahmed ahmed\",\r\n  \"email\": \"midotajj@gmail.com\",\r\n   \"password\": \"Aiefnfgfgf55525\",\r\n   \"confirmPassword\": \"Aiefnfgfgf55525\",\r\n   \"phone\": \"01234567890\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/signup",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "signup"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "confirm-email",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"midotajj@gmail.com\",\r\n    \"otp\": \"915107\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/confirm-email",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "confirm-email"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Google Signup / Login",
+          "item": [
+            {
+              "name": "signup-with-gmail",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"idToken\": \"fkldfdfnlkdnfkln\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/signup-with-gmail",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "signup-with-gmail"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Email OTP",
+          "item": [
+            {
+              "name": "resend-email-otp",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n     \"email\": \"midotajj@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/auth/resend-email-otp",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "resend-email-otp"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "user",
+      "item": [
+        {
+          "name": "Account Settings and Privacy Controll",
+          "item": [
+            {
+              "name": "enable-two-step-verification",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/enable-two-step-verification",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "enable-two-step-verification"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "verify-enable-two-step-verification-code",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"otp\": \"327588\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/verify-enable-two-step-verification-code",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "verify-enable-two-step-verification-code"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "change account privacy",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"accountPrivacy\": 0\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/change-account-privacy",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "change-account-privacy"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "logout",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"action\": 0\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/logout",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "logout"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-password",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"currentPassword\": \"Aiefnfgfgf55525\",\r\n   \"newPassword\": \"Aiefnfgfgf555\",\r\n   \"confirmNewPassword\": \"Aiefnfgfgf555\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/update-password",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "update-password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "rotate token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "let response = pm.response.json();\r\npm.environment.set(\"BEARER_ACCESS_TOKEN\", response.data.access_token);\r\npm.environment.set(\"BEARER_REFRESH_TOKEN\", response.data.refresh_token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_REFRESH_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/rotate-token",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "rotate-token"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Follow / Unfollow System",
+          "item": [
+            {
+              "name": "follow",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/{{targetUserId}}/follow",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "{{targetUserId}}",
+                    "follow"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "unfollow",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/{{targetUserId}}/follow",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "{{targetUserId}}",
+                    "follow"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get user followers",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/{{targetUserId}}/followers",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "{{targetUserId}}",
+                    "followers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get user following",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/{{targetUserId}}/following",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "{{targetUserId}}",
+                    "following"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get user follow requests",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/follow-requests",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "follow-requests"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "cancel follow request",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"status\": 1\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/follow-requests/{{requestId}}",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "follow-requests",
+                    "{{requestId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "process follow request",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"status\": 1\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/follow-requests/{{requestId}}/process",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "follow-requests",
+                    "{{requestId}}",
+                    "process"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "User Search and Suggestions",
+          "item": [
+            {
+              "name": "get user search result",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/search?search_query=ahmed",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "search_query",
+                      "value": "ahmed"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get user follow suggestions",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/follow-suggestions",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "follow-suggestions"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "User Profile Retrieval and Updates",
+          "item": [
+            {
+              "name": "get my profile",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update authenticated user profile",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"phone\": \"01234567890\",\r\n    \"username\": \"ali ali\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "profile-image",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "attachment",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-03 111003.png"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/profile-image",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "profile-image"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get user profile",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BASE_URL}}/user/{{profileId}}",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "{{profileId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

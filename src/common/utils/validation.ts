@@ -1,10 +1,12 @@
 import { z } from "zod";
 import mongoose from "mongoose";
 import {
+  AccountPrivacyEnum,
   EmailSubjectEnum,
   EmailTitleEnum,
   GenderEnum,
   LanguageEnum,
+  ProcessFollowRequestStatusEnum,
 } from "../enum";
 
 const validationMessages = {
@@ -54,6 +56,10 @@ const validationMessages = {
     [LanguageEnum.EN]: "Invalid title, must be one of the predefined titles",
     [LanguageEnum.AR]:
       "عنوان غير صالح، يجب أن يكون أحد العناوين المحددة مسبقًا",
+  },
+  search_query: {
+    [LanguageEnum.EN]: "Invalid search query",
+    [LanguageEnum.AR]: "طلب بحث غير صالح",
   },
 };
 
@@ -158,6 +164,9 @@ export const generalValidationFields = {
   gender: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.enum(GenderEnum);
   },
+  followRequestStatus: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.enum(ProcessFollowRequestStatusEnum);
+  },
   phone: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.string().regex(/^01(0|1|2|5)\d{8}$/, {
       message: getValidationMessage("phone", lang),
@@ -169,6 +178,14 @@ export const generalValidationFields = {
       .refine((idValue) => mongoose.Types.ObjectId.isValid(idValue), {
         message: getValidationMessage("id", lang),
       });
+  },
+  search_query: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.string().regex(/^[a-zA-Z]+\s?[a-zA-Z]+$/, {
+      message: getValidationMessage("search_query", lang),
+    });
+  },
+  accountPrivacy: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.enum(AccountPrivacyEnum);
   },
   file: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.strictObject({

@@ -1,14 +1,22 @@
 import { NextFunction, Request, Response, Router } from "express";
 import {
   authentication,
+  authorization,
   responseFormatter,
   validation,
 } from "../../middleware";
 import { TokenTypeEnum } from "../../common/enum";
 import * as validators from "./../authentication/authentication.validation";
+import * as userValidators from "./../user/user.validation";
 import userService from "./user.service";
-import { ILoginCredentials, IResponse, IUser } from "../../common/interface";
+import {
+  ILoginCredentials,
+  IPaginate,
+  IResponse,
+  IUser,
+} from "../../common/interface";
 import mongoose from "mongoose";
+import { IProfile, IUserPreview } from "./user.interface";
 
 const router = Router({ strict: true, caseSensitive: true });
 
@@ -42,10 +50,31 @@ router.get(
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse<IUser>> => {
-      const data = await userService.getProfile(req.user);
+    ): Promise<IResponse<IProfile>> => {
+      const data = await userService.getMyProfile(req.user);
       return {
-        data: data as IUser,
+        data,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/:profileId",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.getUserProfile),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<IUserPreview | IProfile>> => {
+      const data = await userService.getUserProfile({
+        user: req.user,
+        profileId: new mongoose.Types.ObjectId(req.validated.params.profileId),
+      });
+      return {
+        data,
       };
     },
   ),
@@ -60,13 +89,13 @@ router.patch(
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse<IUser>> => {
+    ): Promise<IResponse<IProfile>> => {
       const data = await userService.updateProfile(
         req.user,
         req.validated.body,
       );
       return {
-        data: data as IUser,
+        data,
       };
     },
   ),
@@ -202,12 +231,13 @@ router.get(
   "/:targetUserId/followers",
   authentication({ tokenType: TokenTypeEnum.ACCESS }),
   validation(validators.targetUserId),
+  authorization(),
   responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse> => {
+    ): Promise<IResponse<IPaginate<IUserPreview>>> => {
       const data = await userService.getUserFollowers({
         user: req.user,
         targetUserId: new mongoose.Types.ObjectId(
@@ -215,7 +245,7 @@ router.get(
         ),
       });
       return {
-        data: data,
+        data,
       };
     },
   ),
@@ -225,12 +255,13 @@ router.get(
   "/:targetUserId/following",
   authentication({ tokenType: TokenTypeEnum.ACCESS }),
   validation(validators.targetUserId),
+  authorization(),
   responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse> => {
+    ): Promise<IResponse<IPaginate<IUserPreview>>> => {
       const data = await userService.getUserFollowing({
         user: req.user,
         targetUserId: new mongoose.Types.ObjectId(
@@ -239,6 +270,129 @@ router.get(
       });
       return {
         data,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/search",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.search_query),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<IPaginate<IUserPreview>>> => {
+      const data = await userService.getUserSearchResult({
+        user: req.user,
+        search_query: req.validated.query.search_query,
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
+
+router.post(
+  "/change-account-privacy",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.accountPrivacy),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<string>> => {
+      const message = await userService.changeAccountPrivacy({
+        user: req.user,
+        accountPrivacy: req.validated.body.accountPrivacy,
+      });
+      return {
+        message,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/follow-suggestions",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const data = await userService.getFollowSuggestions({
+        user: req.user,
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/follow-requests",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const data = await userService.getFollowRequests({
+        user: req.user,
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
+
+router.patch(
+  "/follow-requests/:requestId/process",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.processFollowRequest),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const message = await userService.processFollowRequests({
+        user: req.user,
+        requestId: req.validated.params.requestId,
+        status: req.validated.body.status,
+      });
+      return {
+        message,
+      };
+    },
+  ),
+);
+
+router.delete(
+  "/follow-requests/:requestId",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.cancelFollowRequest),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const message = await userService.cancelFollowRequest({
+        user: req.user,
+        requestId: req.validated.params.requestId,
+      });
+      return {
+        message,
       };
     },
   ),

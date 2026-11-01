@@ -1,8 +1,11 @@
 import { JwtPayload } from "jsonwebtoken";
 import {
+  AccountPrivacyEnum,
   EmailSubjectEnum,
   EmailTitleEnum,
+  FollowRequestStatusEnum,
   LogoutEnum,
+  ProcessFollowRequestStatusEnum,
 } from "../../common/enum";
 import {
   BadRequestException,
@@ -10,7 +13,7 @@ import {
   NotfoundException,
   UnauthorizedException,
 } from "../../common/exception";
-import { IUser } from "../../common/interface";
+import { IPaginate, IUser } from "../../common/interface";
 import {
   compare,
   createLoginCredentials,
@@ -27,6 +30,8 @@ import { ACCESS_TOKEN_EXPIRES_IN } from "../../config";
 import {
   followRepository,
   FollowRepository,
+  followRequestRepository,
+  FollowRequestRepository,
   userRepository,
   UserRepository,
 } from "../../common/repository";
@@ -36,29 +41,61 @@ import {
   verifyEnableTwoStepVerificationCodeDto,
 } from "../authentication/authentication.dto";
 import { CacheService, cacheService } from "../../common/services";
+import { IProfile, IUserPreview } from "./user.interface";
 
 export class UserService {
   private userRepository: UserRepository;
   private followRepository: FollowRepository;
+  private followRequestRepository: FollowRequestRepository;
   private cacheService: CacheService;
   constructor() {
     this.userRepository = userRepository;
     this.followRepository = followRepository;
+    this.followRequestRepository = followRequestRepository;
     this.cacheService = cacheService;
   }
 
-  async getProfile(user: HydratedDocument<IUser>) {
+  async getMyProfile(user: HydratedDocument<IUser>): Promise<IProfile> {
     const phone = user.phone ? await decrypt(user.phone) : undefined;
     return {
-      ...user.toObject(),
-      phone,
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      image: user.image,
+      coverImage: user.coverImage,
+      phone: phone ? phone : null,
     };
+  }
+
+  async getUserProfile({
+    user,
+    profileId,
+  }: {
+    user: HydratedDocument<IUser>;
+    profileId: mongoose.Types.ObjectId;
+  }): Promise<IUserPreview | IProfile> {
+    if (profileId.equals(user._id)) {
+      return await this.getMyProfile(user);
+    }
+
+    const profile = await this.userRepository.findById({
+      id: profileId,
+      projection: "firstName lastName image",
+    });
+
+    if (!profile) {
+      throw new NotfoundException("Profile not found");
+    }
+
+    return profile.toJSON();
   }
 
   async updateProfile(
     user: HydratedDocument<IUser>,
     updates: updateProfileDto["body"],
-  ) {
+  ): Promise<IProfile> {
     for (const [key, value] of Object.entries(updates)) {
       if (key === "phone") {
         user.set(key, await encrypt(value as string));
@@ -69,7 +106,7 @@ export class UserService {
 
     await user.save();
 
-    return await this.getProfile(user);
+    return await this.getMyProfile(user);
   }
 
   async rotateToken({
@@ -204,6 +241,55 @@ export class UserService {
     }
   }
 
+  async sendFollowRequest({
+    user,
+    targetUser,
+  }: {
+    user: HydratedDocument<IUser>;
+    targetUser: HydratedDocument<IUser>;
+  }) {
+    try {
+      await this.followRequestRepository.createOne({
+        data: {
+          senderId: user._id,
+          receiverId: targetUser._id,
+        },
+      });
+      return `Follow request sent to ${targetUser.firstName} ${targetUser.lastName}`;
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new BadRequestException(
+          "You already sent a follow request to this user",
+        );
+      }
+      throw error;
+    }
+  }
+
+  async createFollow({
+    user,
+    targetUser,
+  }: {
+    user: HydratedDocument<IUser>;
+    targetUser: HydratedDocument<IUser>;
+  }) {
+    try {
+      await this.followRepository.createOne({
+        data: {
+          followerId: user._id,
+          followingId: targetUser._id,
+        },
+      });
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new BadRequestException("You are already following this user");
+      }
+      throw error;
+    }
+
+    return `You are now following ${targetUser.firstName} ${targetUser.lastName}`;
+  }
+
   async follow({
     user,
     targetUserId,
@@ -222,21 +308,12 @@ export class UserService {
     if (user._id.equals(targetUser._id)) {
       throw new BadRequestException("You cannot follow yourself");
     }
-    try {
-      await this.followRepository.createOne({
-        data: {
-          followerId: user._id,
-          followingId: targetUser._id,
-        },
-      });
-    } catch (error: any) {
-      if (error.code === 11000) {
-        throw new BadRequestException("You are already following this user");
-      }
-      throw error;
+
+    if (targetUser.accountPrivacy === AccountPrivacyEnum.PRIVATE) {
+      return await this.sendFollowRequest({ user, targetUser });
     }
 
-    return `You are now following ${targetUser.firstName} ${targetUser.lastName}`;
+    return await this.createFollow({ user, targetUser });
   }
 
   async unfollow({
@@ -258,14 +335,22 @@ export class UserService {
       throw new BadRequestException("You cannot unfollow yourself");
     }
 
-    const result = await this.followRepository.deleteOne({
-      filter: {
-        followerId: user._id,
-        followingId: targetUser._id,
-      },
-    });
+    const [f_result, r_result] = await Promise.all([
+      this.followRepository.deleteOne({
+        filter: {
+          followerId: user._id,
+          followingId: targetUser._id,
+        },
+      }),
+      this.followRequestRepository.deleteOne({
+        filter: {
+          senderId: user._id,
+          receiverId: targetUser._id,
+        },
+      }),
+    ]);
 
-    if (result.deletedCount === 0) {
+    if (!f_result.deletedCount || !r_result.deletedCount) {
       throw new BadRequestException("You are not following this user");
     }
 
@@ -275,10 +360,14 @@ export class UserService {
   async getUserFollowers({
     user,
     targetUserId,
+    resultLimit = 10,
+    filter = {},
   }: {
     user: HydratedDocument<IUser>;
     targetUserId: mongoose.Types.ObjectId;
-  }) {
+    resultLimit?: number;
+    filter?: mongoose._QueryFilter<IUser>;
+  }): Promise<IPaginate<IUserPreview>> {
     const targetUser = await this.userRepository.findOne({
       filter: { _id: targetUserId, confirmEmail: { $exists: true } },
     });
@@ -287,37 +376,43 @@ export class UserService {
       throw new NotfoundException("User not found");
     }
 
-    const {
-      docs: followers,
-      docsCount,
-      totalPages,
-      currentPage,
-      limit,
-    } = await this.followRepository.paginate({
-      filter: {
-        followingId: targetUser._id,
-      },
-      options: {
-        populate: "followerId",
-      },
-    });
+    const { docs, docsCount, totalPages, currentPage, limit } =
+      await this.followRepository.paginate({
+        filter: {
+          followingId: targetUser._id,
+          ...filter,
+        },
+        options: {
+          populate: {
+            path: "followerId",
+            select: "firstName lastName image",
+          },
+        },
+        limit: resultLimit,
+      });
+
+    const result = docs.map((doc) => doc.followerId);
 
     return {
       docsCount,
       totalPages,
       currentPage,
       limit,
-      followers: followers.map((follower) => follower.followerId),
+      docs: result,
     };
   }
 
   async getUserFollowing({
     user,
     targetUserId,
+    resultLimit = 10,
+    filter = {},
   }: {
     user: HydratedDocument<IUser>;
     targetUserId: mongoose.Types.ObjectId;
-  }) {
+    resultLimit?: number;
+    filter?: mongoose._QueryFilter<IUser>;
+  }): Promise<IPaginate<IUserPreview>> {
     const targetUser = await this.userRepository.findOne({
       filter: { _id: targetUserId, confirmEmail: { $exists: true } },
     });
@@ -326,19 +421,138 @@ export class UserService {
       throw new NotfoundException("User not found");
     }
 
-    const {
-      docs: following,
+    const { docs, currentPage, totalPages, limit, docsCount } =
+      await this.followRepository.paginate({
+        filter: {
+          followerId: targetUser._id,
+          ...filter,
+        },
+        options: {
+          populate: {
+            path: "followingId",
+            select: "firstName lastName image",
+          },
+        },
+        limit: resultLimit,
+      });
+
+    const result = docs.map((doc) => doc.followingId);
+
+    return {
+      docsCount,
+      totalPages,
+      currentPage,
+      limit,
+      docs: result,
+    };
+  }
+
+  async getUserSearchResult({
+    user,
+    search_query,
+  }: {
+    user: HydratedDocument<IUser>;
+    search_query: string;
+  }): Promise<IPaginate<IUserPreview>> {
+    const s_query = search_query.toLowerCase().trim();
+
+    const { docs, currentPage, totalPages, limit, docsCount } =
+      await this.userRepository.paginate({
+        filter: {
+          $or: [
+            { firstName: { $regex: s_query, $options: "i" } },
+            { lastName: { $regex: s_query, $options: "i" } },
+          ],
+        },
+        limit: 10,
+      });
+
+    const result = docs.map((doc) => {
+      return {
+        _id: doc._id,
+        username: doc.username,
+        image: doc.image,
+      };
+    });
+
+    return {
       currentPage,
       totalPages,
       limit,
       docsCount,
-    } = await this.followRepository.paginate({
-      filter: {
-        followerId: targetUser._id,
-      },
-      options: {
-        populate: "followingId",
-      },
+      docs: result,
+    };
+  }
+
+  async getFollowSuggestions({ user }: { user: HydratedDocument<IUser> }) {
+    const { docs: userFollowingList } = await this.getUserFollowing({
+      user,
+      targetUserId: user._id,
+      resultLimit: 5,
+    });
+
+    const excludedUsers = [
+      ...userFollowingList.map((item) => item._id),
+      user._id,
+    ];
+
+    console.log({ IamFollowing: userFollowingList });
+
+    const suggestions = await Promise.all(
+      userFollowingList.map(async (follow) => {
+        const { docs } = await this.getUserFollowing({
+          user,
+          targetUserId: follow._id,
+          resultLimit: 5,
+          filter: {
+            followingId: { $nin: excludedUsers },
+          },
+        });
+        return docs;
+      }),
+    );
+
+    const allSuggestions = suggestions.flat();
+
+    const entries = allSuggestions.map((suggestion): [string, IUserPreview] => [
+      suggestion._id.toString(),
+      suggestion,
+    ]);
+
+    const uniqueSuggestions = new Map(entries);
+
+    const result = [...uniqueSuggestions.values()];
+
+    return result;
+  }
+
+  async getFollowRequests({
+    user,
+  }: {
+    user: HydratedDocument<IUser>;
+    resultLimit?: number;
+    filter?: mongoose._QueryFilter<IUser>;
+  }): Promise<IPaginate<IUserPreview>> {
+    const { docs, docsCount, totalPages, currentPage, limit } =
+      await this.followRequestRepository.paginate({
+        filter: {
+          receiverId: user._id,
+        },
+        options: {
+          populate: {
+            path: "senderId",
+            select: "firstName lastName image",
+          },
+          sort: { createdAt: -1 },
+        },
+      });
+
+    const result = docs.map((doc) => {
+      return {
+        _id: doc._id,
+        sender: doc.senderId,
+        status: doc.status,
+      };
     });
 
     return {
@@ -346,8 +560,90 @@ export class UserService {
       totalPages,
       currentPage,
       limit,
-      following: following.map((follow) => follow.followingId),
+      docs: result,
     };
+  }
+
+  async processFollowRequests({
+    user,
+    requestId,
+    status,
+  }: {
+    user: HydratedDocument<IUser>;
+    requestId: mongoose.Types.ObjectId;
+    status: ProcessFollowRequestStatusEnum;
+  }) {
+    const request = await this.followRequestRepository.findOne({
+      filter: {
+        _id: requestId,
+        receiverId: user._id,
+      },
+    });
+
+    if (!request) {
+      throw new NotfoundException("Request not found");
+    }
+
+    if (request.status > FollowRequestStatusEnum.PENDING) {
+      throw new BadRequestException("Request already processed");
+    }
+
+    (request.status as unknown as ProcessFollowRequestStatusEnum) = status;
+    await request.save();
+
+    if (request.status === FollowRequestStatusEnum.REJECTED) {
+      return "Follow request rejected";
+    }
+
+    const requestSender = await this.userRepository.findById({
+      id: request.senderId,
+    });
+    await this.createFollow({
+      user: requestSender as HydratedDocument<IUser>,
+      targetUser: user,
+    });
+
+    return "Follow request accepted";
+  }
+
+  async cancelFollowRequest({
+    user,
+    requestId,
+  }: {
+    user: HydratedDocument<IUser>;
+    requestId: mongoose.Types.ObjectId;
+  }): Promise<string> {
+    const { deletedCount } = await this.followRequestRepository.deleteOne({
+      filter: {
+        _id: requestId,
+        senderId: user._id,
+        status: FollowRequestStatusEnum.PENDING,
+      },
+    });
+
+    if (deletedCount === 0) {
+      throw new NotfoundException("Request not found");
+    }
+
+    return "Follow request cancelled";
+  }
+
+  async changeAccountPrivacy({
+    user,
+    accountPrivacy,
+  }: {
+    user: HydratedDocument<IUser>;
+    accountPrivacy: AccountPrivacyEnum;
+  }): Promise<string> {
+    if (user.accountPrivacy === accountPrivacy) {
+      throw new BadRequestException(
+        `Your account is already set to ${AccountPrivacyEnum[accountPrivacy].toLocaleLowerCase()}`,
+      );
+    }
+
+    user.accountPrivacy = accountPrivacy;
+    await user.save();
+    return `Your account privacy has been changed to ${AccountPrivacyEnum[accountPrivacy].toLocaleLowerCase()}`;
   }
 }
 

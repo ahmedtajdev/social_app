@@ -21,7 +21,6 @@ const followSchema = new mongoose.Schema<IFollow>(
     toJSON: { virtuals: true },
     strict: true,
     strictQuery: true,
-    autoIndex: true,
     id: false,
   },
 );
