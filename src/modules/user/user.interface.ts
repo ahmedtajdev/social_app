@@ -9,6 +9,8 @@ export interface IProfile {
   image?: string | null | undefined;
   coverImage?: string[] | undefined;
   phone?: string | null;
+  followersCount: number;
+  followingCount: number;
 }
 
 export interface IUserPreview {
@@ -16,4 +18,6 @@ export interface IUserPreview {
   username?: string | undefined;
   image?: string | null | undefined;
   coverImage?: string[] | undefined;
+  followersCount?: number;
+  followingCount?: number;
 }

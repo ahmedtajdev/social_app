@@ -10,7 +10,7 @@ export const globalErrorHandling = (
   return res.status(error.status ?? 500).json({
     error_message: error.message || "Server error",
     error,
-    // issues: error.cause?.issues,
+    // issues: error.issues,
     stack: error.stack,
   });
 };

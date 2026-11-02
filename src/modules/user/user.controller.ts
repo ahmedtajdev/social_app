@@ -13,7 +13,6 @@ import {
   ILoginCredentials,
   IPaginate,
   IResponse,
-  IUser,
 } from "../../common/interface";
 import mongoose from "mongoose";
 import { IProfile, IUserPreview } from "./user.interface";
@@ -52,27 +51,6 @@ router.get(
       next: NextFunction,
     ): Promise<IResponse<IProfile>> => {
       const data = await userService.getMyProfile(req.user);
-      return {
-        data,
-      };
-    },
-  ),
-);
-
-router.get(
-  "/:profileId",
-  authentication({ tokenType: TokenTypeEnum.ACCESS }),
-  validation(userValidators.getUserProfile),
-  responseFormatter(
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<IResponse<IUserPreview | IProfile>> => {
-      const data = await userService.getUserProfile({
-        user: req.user,
-        profileId: new mongoose.Types.ObjectId(req.validated.params.profileId),
-      });
       return {
         data,
       };
@@ -181,6 +159,86 @@ router.post(
   ),
 );
 
+router.get(
+  "/search",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.search_query),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<IPaginate<IUserPreview>>> => {
+      const data = await userService.getUserSearchResult({
+        user: req.user,
+        search_query: req.validated.query.search_query,
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
+
+router.post(
+  "/change-account-privacy",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.accountPrivacy),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<string>> => {
+      const message = await userService.changeAccountPrivacy({
+        user: req.user,
+        accountPrivacy: req.validated.body.accountPrivacy,
+      });
+      return {
+        message,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/follow-suggestions",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const data = await userService.getFollowSuggestions({
+        user: req.user,
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/follow-requests",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      const data = await userService.getFollowRequests({
+        user: req.user,
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
+
 router.post(
   "/:targetUserId/follow",
   authentication({ tokenType: TokenTypeEnum.ACCESS }),
@@ -275,86 +333,6 @@ router.get(
   ),
 );
 
-router.get(
-  "/search",
-  authentication({ tokenType: TokenTypeEnum.ACCESS }),
-  validation(userValidators.search_query),
-  responseFormatter(
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<IResponse<IPaginate<IUserPreview>>> => {
-      const data = await userService.getUserSearchResult({
-        user: req.user,
-        search_query: req.validated.query.search_query,
-      });
-      return {
-        data,
-      };
-    },
-  ),
-);
-
-router.post(
-  "/change-account-privacy",
-  authentication({ tokenType: TokenTypeEnum.ACCESS }),
-  validation(userValidators.accountPrivacy),
-  responseFormatter(
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<IResponse<string>> => {
-      const message = await userService.changeAccountPrivacy({
-        user: req.user,
-        accountPrivacy: req.validated.body.accountPrivacy,
-      });
-      return {
-        message,
-      };
-    },
-  ),
-);
-
-router.get(
-  "/follow-suggestions",
-  authentication({ tokenType: TokenTypeEnum.ACCESS }),
-  responseFormatter(
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<IResponse> => {
-      const data = await userService.getFollowSuggestions({
-        user: req.user,
-      });
-      return {
-        data,
-      };
-    },
-  ),
-);
-
-router.get(
-  "/follow-requests",
-  authentication({ tokenType: TokenTypeEnum.ACCESS }),
-  responseFormatter(
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<IResponse> => {
-      const data = await userService.getFollowRequests({
-        user: req.user,
-      });
-      return {
-        data,
-      };
-    },
-  ),
-);
-
 router.patch(
   "/follow-requests/:requestId/process",
   authentication({ tokenType: TokenTypeEnum.ACCESS }),
@@ -398,4 +376,45 @@ router.delete(
   ),
 );
 
+router.get(
+  "/:profileId",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.getUserProfile),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<IUserPreview | IProfile>> => {
+      const data = await userService.getUserProfile({
+        user: req.user,
+        profileId: new mongoose.Types.ObjectId(req.validated.params.profileId),
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
+
+router.get(
+  "/:profileId",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  validation(userValidators.getUserProfile),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<IUserPreview | IProfile>> => {
+      const data = await userService.getUserProfile({
+        user: req.user,
+        profileId: new mongoose.Types.ObjectId(req.validated.params.profileId),
+      });
+      return {
+        data,
+      };
+    },
+  ),
+);
 export default router;

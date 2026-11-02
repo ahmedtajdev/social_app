@@ -66,6 +66,8 @@ export class UserService {
       image: user.image,
       coverImage: user.coverImage,
       phone: phone ? phone : null,
+      followersCount: user.followersCount,
+      followingCount: user.followingCount,
     };
   }
 
@@ -82,7 +84,7 @@ export class UserService {
 
     const profile = await this.userRepository.findById({
       id: profileId,
-      projection: "firstName lastName image",
+      projection: "firstName lastName image followersCount followingCount",
     });
 
     if (!profile) {
@@ -287,6 +289,10 @@ export class UserService {
       throw error;
     }
 
+    user.followingCount++;
+    targetUser.followersCount++;
+    await Promise.all([user.save(), targetUser.save()]);
+
     return `You are now following ${targetUser.firstName} ${targetUser.lastName}`;
   }
 
@@ -353,6 +359,11 @@ export class UserService {
     if (!f_result.deletedCount || !r_result.deletedCount) {
       throw new BadRequestException("You are not following this user");
     }
+
+    user.followingCount--;
+    targetUser.followersCount--;
+
+    await Promise.all([user.save(), targetUser.save()]);
 
     return `You unfollowed ${targetUser.firstName} ${targetUser.lastName}`;
   }

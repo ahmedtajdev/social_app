@@ -26,4 +26,6 @@ export interface IUser {
   createdAt?: string;
   updatedAt?: string;
   isTwoStepVerificationEnabled: Boolean;
+  followersCount: number;
+  followingCount: number;
 }

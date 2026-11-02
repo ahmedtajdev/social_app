@@ -144,7 +144,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n    \"email\": \"ahmedtaj.dev@gmail.com\",\r\n    // \"email\": \"midotajj@gmail.com\",\r\n   \"password\": \"Aiefnfgfgf55525\"\r\n}",
+                  "raw": "{\r\n    // \"email\": \"ahmedtaj.dev@gmail.com\",\r\n    \"email\": \"midotajj@gmail.com\",\r\n   \"password\": \"Aiefnfgfgf55525\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
