@@ -548,6 +548,7 @@ export class UserService {
       await this.followRequestRepository.paginate({
         filter: {
           receiverId: user._id,
+          status: FollowRequestStatusEnum.PENDING,
         },
         options: {
           populate: {
