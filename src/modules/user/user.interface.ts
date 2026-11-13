@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
+import { idType } from "../../common/types";
 
 export interface IProfile {
-  _id: mongoose.Types.ObjectId;
+  _id: idType;
   firstName: string;
   lastName: string;
   username?: string | undefined;
@@ -14,7 +15,7 @@ export interface IProfile {
 }
 
 export interface IUserPreview {
-  _id: mongoose.Types.ObjectId;
+  _id: idType;
   username?: string | undefined;
   image?: string | null | undefined;
   coverImage?: string[] | undefined;

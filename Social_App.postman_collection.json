@@ -938,6 +938,47 @@
               "response": []
             },
             {
+              "name": "cover-images",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{BEARER_ACCESS_TOKEN}}"
+                  },
+                  {
+                    "key": "{{x-forwarded-for}}",
+                    "value": "{{ipAddress}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "attachments",
+                      "type": "file",
+                      "src": [
+                        "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-03 111003.png",
+                        "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-31 185646.png",
+                        "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-18 143209.png"
+                      ]
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{BASE_URL}}/user/cover-images",
+                  "host": [
+                    "{{BASE_URL}}"
+                  ],
+                  "path": [
+                    "user",
+                    "cover-images"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
               "name": "profile-image",
               "request": {
                 "method": "PATCH",
@@ -958,7 +999,7 @@
                       "key": "attachment",
                       "type": "file",
                       "src": [
-                        "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-03 111003.png"
+                        "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-23 150121.png"
                       ]
                     }
                   ]
@@ -1004,6 +1045,394 @@
               "response": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "post",
+      "item": [
+        {
+          "name": "create post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "attachments",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "text",
+                  "value": "hello",
+                  "type": "text"
+                },
+                {
+                  "key": "isAnonymous",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/post/",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "post",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all user posts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/post/",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "post",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get post by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/post/{{postId}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "post",
+                "{{postId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update post",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "attachments",
+                  "type": "file",
+                  "src": [
+                    "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-23 150121.png",
+                    "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-03 111003.png"
+                  ]
+                },
+                {
+                  "key": "text",
+                  "value": "updated",
+                  "type": "text"
+                },
+                {
+                  "key": "isAnonymous",
+                  "value": "true",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/post/{{postId}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "post",
+                "{{postId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete post",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/post/{{postId}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "post",
+                "{{postId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "comment",
+      "item": [
+        {
+          "name": "create comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "attachments",
+                  "type": "file",
+                  "src": [
+                    "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-21 125723.png",
+                    "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-23 150121.png"
+                  ]
+                },
+                {
+                  "key": "text",
+                  "value": "ok",
+                  "type": "text"
+                },
+                {
+                  "key": "post",
+                  "value": "{{postId}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/comment/",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "comment",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all post comments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"post\": \"6af72f83759d62bd5d34179f\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/comment/",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "comment",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get comment by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"post\": \"6af72f83759d62bd5d34179f\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/comment/{{commentId}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "comment",
+                "{{commentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "attachments",
+                  "type": "file",
+                  "src": [
+                    "/C:/Users/asus/Pictures/Screenshots/Screenshot 2026-10-03 111003.png"
+                  ]
+                },
+                {
+                  "key": "text",
+                  "value": "updated updated",
+                  "type": "text"
+                },
+                {
+                  "key": "isAnonymous",
+                  "value": "true",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/comment/{{commentId}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "comment",
+                "{{commentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete comment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{BEARER_ACCESS_TOKEN}}"
+              },
+              {
+                "key": "{{x-forwarded-for}}",
+                "value": "{{ipAddress}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/comment/{{commentId}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "comment",
+                "{{commentId}}"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }

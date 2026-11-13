@@ -44,9 +44,9 @@ export const sendEmail = async ({
   to?: string[];
   cc?: string[];
   bcc?: string[];
-  subject: EmailSubjectEnum;
+  subject: EmailSubjectEnum | string;
   text?: string;
-  html: string;
+  html?: string;
   attachments?: MailComposerAttachment[];
 }) => {
   try {

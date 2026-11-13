@@ -4,3 +4,7 @@ export * from "./user.interface";
 export * from "./security.interface";
 export * from "./paginate.interface";
 export * from "./follow.interface";
+export * from "./post.interface";
+export * from "./post_reaction.interface";
+export * from "./comment.interface";
+export * from "./comment_reaction.interface";

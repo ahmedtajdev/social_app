@@ -12,11 +12,13 @@ export const validation = (schema: ValidationSchemaType): RequestHandler => {
       body: req.body,
       query: req.query,
       params: req.params,
+      files: req.files,
+      file: req.file,
     });
 
     if (!validationResult.success) {
       throw new BadRequestException(
-        "Validation error",
+        validationResult.error.message,
         validationResult.error.cause,
       );
     }

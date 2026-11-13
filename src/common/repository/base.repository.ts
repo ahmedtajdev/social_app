@@ -17,6 +17,7 @@ import mongoose, {
   UpdateWriteOpResult,
 } from "mongoose";
 import { IPaginate } from "../interface";
+import { idType } from "../types";
 
 export abstract class DatabaseRepository<TRawDocType> {
   applyQueryOptions(
@@ -47,6 +48,10 @@ export abstract class DatabaseRepository<TRawDocType> {
   constructor(protected model: Model<TRawDocType>) {}
 
   //////////////////////////// Create Methods ////////////////////////////
+
+  async insertMany({ docs }: { docs: HydratedDocument<TRawDocType> }) {
+    return await this.model.insertMany(docs);
+  }
 
   async create({
     data,
@@ -132,7 +137,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: idType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: (QueryOptions<TRawDocType> & { lean?: false }) | null | undefined;
   }): Promise<HydratedDocument<TRawDocType> | null | undefined>;
@@ -142,7 +147,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection,
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: idType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: (QueryOptions<TRawDocType> & { lean?: true }) | null | undefined;
   }): Promise<FlattenMaps<TRawDocType> | null | undefined>;
@@ -152,7 +157,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     projection = {},
     options,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: idType;
     projection?: ProjectionType<TRawDocType> | null | undefined;
     options?: QueryOptions<TRawDocType> | null | undefined;
   }): Promise<
@@ -268,7 +273,7 @@ export abstract class DatabaseRepository<TRawDocType> {
     update,
     options = {},
   }: {
-    id?: mongoose.Types.ObjectId;
+    id?: idType;
     update?: UpdateQuery<TRawDocType>;
     options?: QueryOptions<TRawDocType> | null;
   }): Promise<HydratedDocument<TRawDocType> | null> {
@@ -309,7 +314,7 @@ export abstract class DatabaseRepository<TRawDocType> {
   async findByIdAndDelete({
     id,
   }: {
-    id: mongoose.Types.ObjectId;
+    id: idType;
   }): Promise<HydratedDocument<TRawDocType> | null> {
     return this.model.findByIdAndDelete(id);
   }

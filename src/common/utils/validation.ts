@@ -120,6 +120,14 @@ const NotMatchFields = <T extends object>({
   }
 };
 
+export const booleanFromFormData = (lang: LanguageEnum = LanguageEnum.EN) => {
+  return z.preprocess((value) => {
+    if (value === "true") return true;
+    if (value === "false") return false;
+    return value;
+  }, generalValidationFields.isAnonymous(lang));
+};
+
 export const generalValidationFields = {
   email: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.email({
@@ -140,6 +148,9 @@ export const generalValidationFields = {
     return z
       .string()
       .regex(/^\d{6}$/, { message: getValidationMessage("otp", lang) });
+  },
+  idToken: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.string();
   },
   password: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, {
@@ -187,16 +198,39 @@ export const generalValidationFields = {
   accountPrivacy: (lang: LanguageEnum = LanguageEnum.EN) => {
     return z.enum(AccountPrivacyEnum);
   },
+  text: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.string().trim().max(5000);
+  },
+  isAnonymous: (lang: LanguageEnum = LanguageEnum.EN) => {
+    return z.boolean().default(false);
+  },
   file: (lang: LanguageEnum = LanguageEnum.EN) => {
-    return z.strictObject({
-      fieldname: z.string(),
-      originalname: z.string(),
-      encoding: z.string(),
-      mimetype: z.string(),
-      buffer: z.instanceof(Buffer),
-      size: z.number(),
-      path: z.string(),
-    });
+    return z
+      .strictObject({
+        fieldname: z.string(),
+        originalname: z.string(),
+        encoding: z.string(),
+        mimetype: z.string(),
+        size: z.number(),
+        buffer: z.instanceof(Buffer).optional(),
+        path: z.string().optional(),
+        destination: z.string().optional(),
+        filename: z.string().optional(),
+      })
+      .superRefine((data, ctx) => {
+        if (!data.buffer && !data.path) {
+          ctx.addIssue({
+            code: "custom",
+            message:
+              lang === LanguageEnum.EN
+                ? "File must have either buffer or path"
+                : "يجب أن يحتوي الملف على إما buffer أو path",
+          });
+        }
+      });
+  },
+  files(lang: LanguageEnum = LanguageEnum.EN) {
+    return z.array(this.file(lang));
   },
   matchFields,
   NotMatchFields,

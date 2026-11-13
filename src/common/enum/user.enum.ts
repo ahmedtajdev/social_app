@@ -28,3 +28,8 @@ export enum FollowRequestStatusEnum {
   ACCEPTED,
   REJECTED,
 }
+
+export enum AccountStatusEnum {
+  ARCIVE,
+  ACTIVE,
+}

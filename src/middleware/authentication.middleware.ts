@@ -1,17 +1,19 @@
 import { NextFunction, Request, Response } from "express";
 import { TokenTypeEnum } from "../common/enum";
-import { decodeToken } from "../common/security";
 import { UnauthorizedException } from "../common/exception";
+import { tokenService } from "../common/services";
 
 export const tokenAuth = async ({
   req,
+  token,
   tokenType = TokenTypeEnum.ACCESS,
 }: {
   req: Request;
+  token: string;
   tokenType: TokenTypeEnum;
-}) => {
-  const { payload, user } = await decodeToken({
-    token: req.headers.authorization,
+}): Promise<void> => {
+  const { payload, user } = await tokenService.decodeToken({
+    token,
     tokenType,
   });
 
@@ -21,11 +23,12 @@ export const tokenAuth = async ({
 
 export const authentication = ({ tokenType = TokenTypeEnum.ACCESS } = {}) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.headers.authorization) {
+    const token = req.headers.authorization;
+    if (!token) {
       throw new UnauthorizedException("Unauthorized user");
     }
 
-    await tokenAuth({ req, tokenType });
+    await tokenAuth({ req, token, tokenType });
 
     next();
   };

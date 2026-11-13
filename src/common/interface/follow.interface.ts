@@ -1,15 +1,15 @@
-import mongoose from "mongoose";
 import { FollowRequestStatusEnum } from "../enum";
+import { idType } from "../types";
 
 export interface IFollow {
-  _id: mongoose.Types.ObjectId;
-  followerId: mongoose.Types.ObjectId;
-  followingId: mongoose.Types.ObjectId;
+  _id: idType;
+  followerId: idType;
+  followingId: idType;
 }
 
 export interface IFollowRequest {
-  _id: mongoose.Types.ObjectId;
-  senderId: mongoose.Types.ObjectId;
-  receiverId: mongoose.Types.ObjectId;
+  _id: idType;
+  senderId: idType;
+  receiverId: idType;
   status: FollowRequestStatusEnum;
 }

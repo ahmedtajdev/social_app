@@ -14,17 +14,9 @@ import {
   UnauthorizedException,
 } from "../../common/exception";
 import { IPaginate, IUser } from "../../common/interface";
-import {
-  compare,
-  createLoginCredentials,
-  createRevokeToken,
-  decrypt,
-  encrypt,
-  hash,
-  userBaseRevokeTokenKey,
-} from "../../common/security";
+import { compare, decrypt, encrypt, hash } from "../../common/security";
 import authenticationService from "../authentication/authentication.service";
-import mongoose, { HydratedDocument } from "mongoose";
+import mongoose from "mongoose";
 import { userEmailKey } from "../../common/utils";
 import { ACCESS_TOKEN_EXPIRES_IN } from "../../config";
 import {
@@ -40,22 +32,36 @@ import {
   updateProfileDto,
   verifyEnableTwoStepVerificationCodeDto,
 } from "../authentication/authentication.dto";
-import { CacheService, cacheService } from "../../common/services";
+import {
+  CacheService,
+  cacheService,
+  cloudService,
+  CloudService,
+  JwtPayloadType,
+  tokenService,
+  TokenService,
+} from "../../common/services";
 import { IProfile, IUserPreview } from "./user.interface";
+import { FileType, idType } from "../../common/types";
+import { HUser } from "../../DB/models";
 
 export class UserService {
-  private userRepository: UserRepository;
-  private followRepository: FollowRepository;
-  private followRequestRepository: FollowRequestRepository;
-  private cacheService: CacheService;
+  private readonly userRepository: UserRepository;
+  private readonly followRepository: FollowRepository;
+  private readonly followRequestRepository: FollowRequestRepository;
+  private readonly cacheService: CacheService;
+  private readonly tokenService: TokenService;
+  private readonly cloudService: CloudService;
   constructor() {
     this.userRepository = userRepository;
     this.followRepository = followRepository;
     this.followRequestRepository = followRequestRepository;
     this.cacheService = cacheService;
+    this.tokenService = tokenService;
+    this.cloudService = cloudService;
   }
 
-  async getMyProfile(user: HydratedDocument<IUser>): Promise<IProfile> {
+  async getMyProfile(user: HUser): Promise<IProfile> {
     const phone = user.phone ? await decrypt(user.phone) : undefined;
     return {
       _id: user._id,
@@ -75,8 +81,8 @@ export class UserService {
     user,
     profileId,
   }: {
-    user: HydratedDocument<IUser>;
-    profileId: mongoose.Types.ObjectId;
+    user: HUser;
+    profileId: idType;
   }): Promise<IUserPreview | IProfile> {
     if (profileId.equals(user._id)) {
       return await this.getMyProfile(user);
@@ -95,7 +101,7 @@ export class UserService {
   }
 
   async updateProfile(
-    user: HydratedDocument<IUser>,
+    user: HUser,
     updates: updateProfileDto["body"],
   ): Promise<IProfile> {
     for (const [key, value] of Object.entries(updates)) {
@@ -111,17 +117,31 @@ export class UserService {
     return await this.getMyProfile(user);
   }
 
+  async profileImage({
+    file,
+    user,
+  }: {
+    file: FileType;
+    user: HUser;
+  }): Promise<string> {
+    const key = await this.cloudService.uploadAsset({
+      file,
+      customPath: `User/${user._id.toString()}/Profile`,
+    });
+
+    return key;
+  }
+
   async rotateToken({
     payload,
     user,
     issuer,
   }: {
-    payload: JwtPayload;
-    user: HydratedDocument<IUser>;
-    issuer?: string | undefined;
+    payload: JwtPayloadType;
+    user: HUser;
+    issuer: string;
   }) {
-    const accessExpiresIn =
-      ((payload.iat as number) + ACCESS_TOKEN_EXPIRES_IN) * 1000;
+    const accessExpiresIn = (payload.iat + ACCESS_TOKEN_EXPIRES_IN) * 1000;
     const currentTime = Date.now();
 
     if (currentTime < accessExpiresIn) {
@@ -130,8 +150,11 @@ export class UserService {
       );
     }
 
-    const data = await createLoginCredentials({ user, issuer });
-    await createRevokeToken({ payload });
+    const data = this.tokenService.createLoginCredentials({
+      user,
+      issuer,
+    });
+    await this.tokenService.createRevokeToken({ payload });
     return data;
   }
 
@@ -154,7 +177,7 @@ export class UserService {
   }
 
   async verifyEnableTwoStepVerificationCode(
-    user: HydratedDocument<IUser>,
+    user: HUser,
     body: verifyEnableTwoStepVerificationCodeDto["body"],
   ) {
     try {
@@ -189,8 +212,8 @@ export class UserService {
   }
 
   async updatePassword(
-    user: HydratedDocument<IUser>,
-    payload: JwtPayload,
+    user: HUser,
+    payload: JwtPayloadType,
     body: UpdatePasswordDto["body"],
   ) {
     try {
@@ -220,23 +243,25 @@ export class UserService {
     user,
     action = LogoutEnum.DEVICE,
   }: {
-    payload: JwtPayload;
-    user: HydratedDocument<IUser>;
+    payload: JwtPayloadType;
+    user: HUser;
     action?: LogoutEnum;
   }) {
     switch (action) {
       case LogoutEnum.ALL:
-        user.changeCredentialsTime = new Date().toDateString();
+        user.changeCredentialsTime = new Date();
         await user.save();
         await this.cacheService.del({
           keys: await this.cacheService.keys({
-            prefix: userBaseRevokeTokenKey({ userId: payload.sub as string }),
+            prefix: this.tokenService.userBaseRevokeTokenKey({
+              userId: payload.sub,
+            }),
           }),
         });
         return "Logout from all devices successfully";
 
       case LogoutEnum.DEVICE:
-        await createRevokeToken({ payload });
+        await this.tokenService.createRevokeToken({ payload });
         return "Logout from current device successfully";
       default:
         throw new BadRequestException("Invalid action");
@@ -247,8 +272,8 @@ export class UserService {
     user,
     targetUser,
   }: {
-    user: HydratedDocument<IUser>;
-    targetUser: HydratedDocument<IUser>;
+    user: HUser;
+    targetUser: HUser;
   }) {
     try {
       await this.followRequestRepository.createOne({
@@ -268,13 +293,7 @@ export class UserService {
     }
   }
 
-  async createFollow({
-    user,
-    targetUser,
-  }: {
-    user: HydratedDocument<IUser>;
-    targetUser: HydratedDocument<IUser>;
-  }) {
+  async createFollow({ user, targetUser }: { user: HUser; targetUser: HUser }) {
     try {
       await this.followRepository.createOne({
         data: {
@@ -296,13 +315,7 @@ export class UserService {
     return `You are now following ${targetUser.firstName} ${targetUser.lastName}`;
   }
 
-  async follow({
-    user,
-    targetUserId,
-  }: {
-    user: HydratedDocument<IUser>;
-    targetUserId: mongoose.Types.ObjectId;
-  }) {
+  async follow({ user, targetUserId }: { user: HUser; targetUserId: idType }) {
     const targetUser = await this.userRepository.findOne({
       filter: { _id: targetUserId, confirmEmail: { $exists: true } },
     });
@@ -326,8 +339,8 @@ export class UserService {
     user,
     targetUserId,
   }: {
-    user: HydratedDocument<IUser>;
-    targetUserId: mongoose.Types.ObjectId;
+    user: HUser;
+    targetUserId: idType;
   }) {
     const targetUser = await this.userRepository.findOne({
       filter: { _id: targetUserId, confirmEmail: { $exists: true } },
@@ -374,8 +387,8 @@ export class UserService {
     resultLimit = 10,
     filter = {},
   }: {
-    user: HydratedDocument<IUser>;
-    targetUserId: mongoose.Types.ObjectId;
+    user: HUser;
+    targetUserId: idType;
     resultLimit?: number;
     filter?: mongoose._QueryFilter<IUser>;
   }): Promise<IPaginate<IUserPreview>> {
@@ -419,8 +432,8 @@ export class UserService {
     resultLimit = 10,
     filter = {},
   }: {
-    user: HydratedDocument<IUser>;
-    targetUserId: mongoose.Types.ObjectId;
+    user: HUser;
+    targetUserId: idType;
     resultLimit?: number;
     filter?: mongoose._QueryFilter<IUser>;
   }): Promise<IPaginate<IUserPreview>> {
@@ -462,7 +475,7 @@ export class UserService {
     user,
     search_query,
   }: {
-    user: HydratedDocument<IUser>;
+    user: HUser;
     search_query: string;
   }): Promise<IPaginate<IUserPreview>> {
     const s_query = search_query.toLowerCase().trim();
@@ -495,7 +508,7 @@ export class UserService {
     };
   }
 
-  async getFollowSuggestions({ user }: { user: HydratedDocument<IUser> }) {
+  async getFollowSuggestions({ user }: { user: HUser }) {
     const { docs: userFollowingList } = await this.getUserFollowing({
       user,
       targetUserId: user._id,
@@ -540,7 +553,7 @@ export class UserService {
   async getFollowRequests({
     user,
   }: {
-    user: HydratedDocument<IUser>;
+    user: HUser;
     resultLimit?: number;
     filter?: mongoose._QueryFilter<IUser>;
   }): Promise<IPaginate<IUserPreview>> {
@@ -581,8 +594,8 @@ export class UserService {
     requestId,
     status,
   }: {
-    user: HydratedDocument<IUser>;
-    requestId: mongoose.Types.ObjectId;
+    user: HUser;
+    requestId: idType;
     status: ProcessFollowRequestStatusEnum;
   }) {
     const request = await this.followRequestRepository.findOne({
@@ -611,7 +624,7 @@ export class UserService {
       id: request.senderId,
     });
     await this.createFollow({
-      user: requestSender as HydratedDocument<IUser>,
+      user: requestSender as HUser,
       targetUser: user,
     });
 
@@ -622,8 +635,8 @@ export class UserService {
     user,
     requestId,
   }: {
-    user: HydratedDocument<IUser>;
-    requestId: mongoose.Types.ObjectId;
+    user: HUser;
+    requestId: idType;
   }): Promise<string> {
     const { deletedCount } = await this.followRequestRepository.deleteOne({
       filter: {
@@ -644,7 +657,7 @@ export class UserService {
     user,
     accountPrivacy,
   }: {
-    user: HydratedDocument<IUser>;
+    user: HUser;
     accountPrivacy: AccountPrivacyEnum;
   }): Promise<string> {
     if (user.accountPrivacy === accountPrivacy) {

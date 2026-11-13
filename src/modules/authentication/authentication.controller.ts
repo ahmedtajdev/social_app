@@ -1,24 +1,30 @@
 import { NextFunction, Request, Response, Router } from "express";
 import authenticationService from "./authentication.service";
 import { responseFormatter, validation } from "../../middleware";
-import { ILoginCredentials, IResponse } from "../../common/interface";
+import { IResponse } from "../../common/interface";
 import * as validators from "./authentication.validation";
-import { generateLimiter } from "../../common/utils";
+import { generateLimiter, getIssuer } from "../../common/utils";
 import { LOGIN_LIMIT } from "../../config";
+import {
+  LoginResponseType,
+  SignupResponseType,
+} from "./entities/authentication.entities";
 
 const router = Router({ strict: true, caseSensitive: true });
 
 router.post(
   "/signup-with-gmail",
+  validation(validators.signupWithGmail),
   responseFormatter(
     async (
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse<ILoginCredentials>> => {
-      const { status, data } = await authenticationService.signupWithGmail(
-        req.body,
-      );
+    ): Promise<IResponse<LoginResponseType>> => {
+      const { status, data } = await authenticationService.signupWithGmail({
+        idToken: req.validated.body.idToken,
+        issuer: getIssuer(req),
+      });
       return {
         status,
         data,
@@ -35,14 +41,14 @@ router.post(
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse> => {
-      const { message, user } = await authenticationService.signup(
+    ): Promise<IResponse<SignupResponseType>> => {
+      const { message, ...data } = await authenticationService.signup(
         req.validated.body,
       );
       return {
         message,
         status: 201,
-        data: user,
+        data,
       };
     },
   ),
@@ -160,12 +166,13 @@ router.post(
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse<ILoginCredentials>> => {
-      const data = (await authenticationService.login(req.validated.body, {
-        issuer: `${req.protocol}://${req.host}`,
-      })) as ILoginCredentials;
+    ): Promise<IResponse<LoginResponseType>> => {
+      const result = await authenticationService.login(req.validated.body, {
+        issuer: getIssuer(req),
+      });
       return {
-        data,
+        message: typeof result === "string" ? result : true,
+        data: typeof result === "string" ? undefined : result,
       };
     },
   ),
@@ -179,13 +186,13 @@ router.post(
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse<ILoginCredentials>> => {
+    ): Promise<IResponse<LoginResponseType>> => {
       const data = (await authenticationService.loginConfirmation(
         req.validated.body,
         {
-          issuer: `${req.protocol}://${req.host}`,
+          issuer: getIssuer(req),
         },
-      )) as ILoginCredentials;
+      )) as LoginResponseType;
       return {
         data,
       };

@@ -1,4 +1,4 @@
-export interface ILoginCredentials {
-  access_token: string;
-  refresh_token: string;
+export interface ITokenSignatures {
+  access_signature: string;
+  refresh_signature: string;
 }

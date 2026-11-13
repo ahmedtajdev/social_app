@@ -22,6 +22,7 @@ const limiter = generateLimiter({
 
 app.set("trust proxy", true);
 app.use(helmet(), cors(), limiter, express.json());
+app.use("/assets", express.static("./assets"));
 
 app.all(
   "/",

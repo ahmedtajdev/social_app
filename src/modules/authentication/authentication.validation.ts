@@ -71,6 +71,12 @@ export const confirmEmail = (lang: LanguageEnum = LanguageEnum.EN) =>
       otp: generalValidationFields.otp(lang),
     }),
   });
+export const signupWithGmail = (lang: LanguageEnum = LanguageEnum.EN) =>
+  z.object({
+    body: z.strictObject({
+      idToken: generalValidationFields.idToken(lang),
+    }),
+  });
 
 export const otp = (lang: LanguageEnum = LanguageEnum.EN) =>
   z.object({

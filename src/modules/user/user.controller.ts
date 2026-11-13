@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, Router } from "express";
 import {
   authentication,
   authorization,
+  fileUploadMiddleware,
   responseFormatter,
   validation,
 } from "../../middleware";
@@ -9,13 +10,12 @@ import { TokenTypeEnum } from "../../common/enum";
 import * as validators from "./../authentication/authentication.validation";
 import * as userValidators from "./../user/user.validation";
 import userService from "./user.service";
-import {
-  ILoginCredentials,
-  IPaginate,
-  IResponse,
-} from "../../common/interface";
+import { IPaginate, IResponse } from "../../common/interface";
 import mongoose from "mongoose";
 import { IProfile, IUserPreview } from "./user.interface";
+import { LoginResponseType } from "../authentication";
+import { fileValidation, getIssuer, localFileUpload } from "../../common/utils";
+import { FileType } from "../../common/types";
 
 const router = Router({ strict: true, caseSensitive: true });
 
@@ -79,6 +79,50 @@ router.patch(
   ),
 );
 
+router.patch(
+  "/profile-image",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  fileUploadMiddleware({
+    multerMiddleware: localFileUpload().single("attachment"),
+    validation: fileValidation.image,
+  }),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse<string>> => {
+      const key = await userService.profileImage({
+        file: req.file as FileType,
+        user: req.user,
+      });
+      return {
+        data: key,
+      };
+    },
+  ),
+);
+
+router.patch(
+  "/cover-images",
+  authentication({ tokenType: TokenTypeEnum.ACCESS }),
+  fileUploadMiddleware({
+    multerMiddleware: localFileUpload({}).array("attachments", 3),
+    validation: fileValidation.image,
+  }),
+  responseFormatter(
+    async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ): Promise<IResponse> => {
+      return {
+        data: req.files,
+      };
+    },
+  ),
+);
+
 router.post(
   "/rotate-token",
   authentication({ tokenType: TokenTypeEnum.REFRESH }),
@@ -87,11 +131,11 @@ router.post(
       req: Request,
       res: Response,
       next: NextFunction,
-    ): Promise<IResponse<ILoginCredentials>> => {
+    ): Promise<IResponse<LoginResponseType>> => {
       const data = await userService.rotateToken({
         payload: req.payload,
         user: req.user,
-        issuer: `${req.protocol}://${req.host}`,
+        issuer: getIssuer(req),
       });
       return {
         data,

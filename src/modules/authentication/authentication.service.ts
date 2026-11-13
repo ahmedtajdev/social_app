@@ -24,30 +24,31 @@ import {
   EmailTitleEnum,
   ProviderEnum,
 } from "../../common/enum";
-import {
-  compare,
-  createLoginCredentials,
-  encrypt,
-  hash,
-  userBaseRevokeTokenKey,
-} from "../../common/security";
+import { compare, encrypt, hash } from "../../common/security";
 import {
   emailEvent,
   userEmailKey,
   userEmailTrialsKey,
 } from "../../common/utils";
 import { createOtp } from "../../common/utils";
-import { cacheService, CacheService } from "../../common/services";
-import { ISignup } from "./authentication.interface";
+import {
+  cacheService,
+  CacheService,
+  tokenService,
+  TokenService,
+} from "../../common/services";
+import { LoginResponseType, SignupResponseType } from "./entities";
 
 export class AuthenticationService {
   private userRepository: UserRepository;
   private cacheService: CacheService;
+  private tokenService: TokenService;
   private readonly client: OAuth2Client;
 
   constructor() {
     this.userRepository = userRepository;
     this.cacheService = cacheService;
+    this.tokenService = tokenService;
     this.client = new OAuth2Client();
   }
 
@@ -69,7 +70,13 @@ export class AuthenticationService {
     return payload;
   }
 
-  async signupWithGmail({ idToken }: { idToken: string }) {
+  async signupWithGmail({
+    idToken,
+    issuer,
+  }: {
+    idToken: string;
+    issuer: string;
+  }): Promise<{ status: number; data: LoginResponseType }> {
     try {
       const { name, email, picture } = await this.verifyGoogleAccount({
         idToken,
@@ -86,8 +93,9 @@ export class AuthenticationService {
 
         return {
           status: 200,
-          data: await createLoginCredentials({
+          data: this.tokenService.createLoginCredentials({
             user: existAccount,
+            issuer,
           }),
         };
       }
@@ -104,7 +112,10 @@ export class AuthenticationService {
 
       return {
         status: 201,
-        data: await createLoginCredentials({ user }),
+        data: this.tokenService.createLoginCredentials({
+          user,
+          issuer,
+        }),
       };
     } catch (error) {
       throw error;
@@ -184,7 +195,7 @@ export class AuthenticationService {
     email,
     password,
     phone,
-  }: SignupDto["body"]): Promise<ISignup> {
+  }: SignupDto["body"]): Promise<SignupResponseType & { message: string }> {
     try {
       const duplicatedUser = await this.userRepository.findOne({
         filter: { email },
@@ -198,8 +209,8 @@ export class AuthenticationService {
         data: {
           username,
           email,
-          password: await hash(password),
-          phone: phone ? await encrypt(phone) : undefined,
+          password,
+          phone,
         },
         options: {
           validateBeforeSave: true,
@@ -214,11 +225,9 @@ export class AuthenticationService {
 
       return {
         message,
-        user: {
-          _id: user._id,
-          username: user.username as string,
-          image: user.image ? user.image : null,
-        },
+        _id: user._id,
+        username: user.username as string,
+        image: user.image ? user.image : null,
       };
     } catch (error) {
       throw error;
@@ -299,7 +308,7 @@ export class AuthenticationService {
         throw new ConflictException("Invalid OTP");
       }
 
-      user.confirmEmail = new Date().toDateString();
+      user.confirmEmail = new Date();
       await user.save();
       await this.cacheService.del({
         keys: await this.cacheService.keys({
@@ -356,12 +365,14 @@ export class AuthenticationService {
   }: ResetForgotPasswordDto["body"]): Promise<string> => {
     const { user } = await this.verifyForgotPasswordCode({ otp, email });
     user.password = await hash(password);
-    user.changeCredentialsTime = new Date().toDateString();
+    user.changeCredentialsTime = new Date();
     await user.save();
 
     const result = await Promise.all([
       this.cacheService.keys({
-        prefix: userBaseRevokeTokenKey({ userId: user._id.toString() }),
+        prefix: this.tokenService.userBaseRevokeTokenKey({
+          userId: user._id.toHexString(),
+        }),
       }),
       this.cacheService.keys({
         prefix: userEmailKey({
@@ -378,8 +389,8 @@ export class AuthenticationService {
 
   async login(
     { email, password }: LoginDto["body"],
-    { issuer }: { issuer: string | undefined },
-  ) {
+    { issuer }: { issuer: string },
+  ): Promise<LoginResponseType | string> {
     try {
       const user = await this.userRepository.findOne({
         filter: {
@@ -400,15 +411,14 @@ export class AuthenticationService {
       }
 
       if (user.isTwoStepVerificationEnabled) {
-        await this.sendEmailOtp({
+        return await this.sendEmailOtp({
           email,
           subject: EmailSubjectEnum.LOGIN_CONFIRMATION,
           title: EmailTitleEnum.LOGIN_CONFIRMATION,
         });
-        return;
       }
 
-      return await createLoginCredentials({ user, issuer });
+      return this.tokenService.createLoginCredentials({ user, issuer });
     } catch (error) {
       throw error;
     }
@@ -416,8 +426,8 @@ export class AuthenticationService {
 
   async loginConfirmation(
     { otp, email }: LoginConfirmationDto["body"],
-    { issuer }: { issuer: string | undefined },
-  ) {
+    { issuer }: { issuer: string },
+  ): Promise<LoginResponseType> {
     try {
       const user = await this.userRepository.findOne({
         filter: {
@@ -451,7 +461,7 @@ export class AuthenticationService {
         }),
       });
 
-      return await createLoginCredentials({ user, issuer });
+      return this.tokenService.createLoginCredentials({ user, issuer });
     } catch (error) {
       throw error;
     }
